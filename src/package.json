@@ -1,0 +1,11 @@
+{
+  "name": "image-gaze",
+  "title": "Image Gaze",
+  "id": "jid1-e9yOHJXyDE7I9w",
+  "description": "Show a large preview of the image (link) at the mouse cursor",
+  "author": "Qasim K (QasimK.github.io)",
+  "homepage": "https://github.com/QasimK/",
+  "version": "0.4",
+  "license": "MIT",
+  "permissions": {"private-browsing": true}
+}
