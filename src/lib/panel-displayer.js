@@ -12,7 +12,7 @@ var timers = require('sdk/timers');
 var panel = require("sdk/panel");
 var jQuery = "./jquery-2.1.1.min.js";
 
-var UPDATE_INTERVAL = 1000/60; //Possibility of changing frame-rate (auto?)
+var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
 
 var panelStoredX = null;
 var panelStoredY = null;
@@ -20,9 +20,9 @@ var panelStoredImageWidth = 0;
 var panelStoredImageHeight = 0;
 var loadingImgWidth = null;
 var loadingImgHeight = null;
-var timerID = null;
 
 var showTimerID = null;
+var updateTimerID = null;
 
 var imagePanel = panel.Panel({
   contentURL: "./panel.html",
@@ -43,19 +43,25 @@ imagePanel.port.on("requestResize", function(width, height) {
   imagePanel.resize(width, height);
 });
 
-function show(x, y) {
+function show(x, y, delay) {
   panelStoredX = x;
   panelStoredY = y;
-  //Delay makes sure there is enough time to set loading image panel size
+  
+  //If delay is undefined, null, zero or less than UPDATE_INTERVAL
+  //There is a minimum delay to ensure 'specifyLoadingImgDimensions' is sent
+  if (!delay || delay < UPDATE_INTERVAL) {
+    delay = UPDATE_INTERVAL;
+  }
+  
   showTimerID = timers.setTimeout(function() {
     imagePanel.show(getPanelDimensions());
-  }, UPDATE_INTERVAL);
+  }, delay);
 }
 
 function hide() {
   imagePanel.hide();
-  timers.clearTimeout(timerID);
-  timerID = null;
+  timers.clearTimeout(updateTimerID);
+  updateTimerID = null;
   timers.clearTimeout(showTimerID);
   showTimerID = null
 }
@@ -64,8 +70,8 @@ function moveTo(x, y) {
   if (x !== panelStoredX || y !== panelStoredY) {
     panelStoredX = x;
     panelStoredY = y;
-    if (!timerID) {
-      timerID = timers.setTimeout(timedUpdatePanelPosition, UPDATE_INTERVAL);
+    if (!updateTimerID) {
+      updateTimerID = timers.setTimeout(timedUpdatePanelPosition, UPDATE_INTERVAL);
     }
   }
 }
@@ -89,16 +95,19 @@ function getPanelDimensions(corner) {
   };
 }
 
-function updatePanelDimensions() {
+//Not used
+/*function updatePanelDimensions() {
   imagePanel.hide();
   imagePanel.show(getPanelDimensions());
-}
+}*/
 
 function timedUpdatePanelPosition() {
-  timerID = null;
-  imagePanel.hide();
-  //TODO: Bug in SDK - panel flickers
-  //var dim = getPanelDimensions()["position"]
-  //imagePanel.sizeTo(dim["left"], dim["top"]);
-  imagePanel.show(getPanelDimensions());
+  updateTimerID = null;
+  if (imagePanel.isShowing) {
+    imagePanel.hide();
+    //TODO: Bug in SDK - panel flickers
+    //var dim = getPanelDimensions()["position"]
+    //imagePanel.sizeTo(dim["left"], dim["top"]);
+    imagePanel.show(getPanelDimensions());
+  }
 }
