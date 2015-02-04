@@ -15,12 +15,15 @@ $("body").on("mouseenter", 'a', function(event) {
       firstSub == ".bmp" || secondSub == ".jpeg" || secondSub == ".gifv")
   {
     $(this).on("mousemove", function(event) {
-      self.port.emit("mouseUpdate", event.clientX, event.clientY);
+      // client is relative to the web page
+      // screen is relative to the physical monitor
+      self.port.emit("mouseUpdate", event.clientX, event.clientY,
+                      event.screenX, event.screenY);
     });
     self.port.emit("loadImage", url);
-    //This will eventually port.emit to the timer.js file who will do it:
-    //must come after 'loadImage' emit:
-    self.port.emit("showPanel", event.clientX, event.clientY); 
+    // 'showPanel' must come after 'loadImage' emit:
+    self.port.emit("showPanel", event.clientx, event.clientY,
+                    event.screenX, event.screenY);
   }
 });
 

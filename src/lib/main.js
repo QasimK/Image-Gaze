@@ -33,14 +33,14 @@ pageMod.PageMod({
     worker.port.on("loadImage", function(url) {
       panelDisplayer.setImage(url);
     });
-    worker.port.on("showPanel", function(x, y) {
-      panelDisplayer.show(x, y, prefPanelDelay);
+    worker.port.on("showPanel", function(clientX, clientY, screenX, screenY) {
+      panelDisplayer.show(clientX, clientY, screenX, screenY, prefPanelDelay);
     });
     worker.port.on("hidePanel", function() {
       panelDisplayer.hide();
     });
-    worker.port.on("mouseUpdate", function(x, y) {
-      panelDisplayer.moveTo(x, y);
+    worker.port.on("mouseUpdate", function(clientX, clientY, screenX, screenY) {
+      panelDisplayer.moveTo(clientX, clientY, screenX, screenY);
     });
   }
 });

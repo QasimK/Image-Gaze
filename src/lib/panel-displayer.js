@@ -14,12 +14,21 @@ var jQuery = "./jquery-2.1.1.min.js";
 
 var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
 
-var panelStoredX = null;
-var panelStoredY = null;
-var panelStoredImageWidth = 0;
-var panelStoredImageHeight = 0;
-var loadingImgWidth = null;
-var loadingImgHeight = null;
+var panelStoredImageWidth = null;
+var panelStoredImageHeight = null;
+
+// panel is relative to web page view port
+// mouseScreen is relative to the physical monitor
+var panelX = null; // "clientX"
+var panelY = null;
+var mouseScreenX = null; // "screenX"
+var mouseScreenY = null;
+
+//Desktop available space:
+var availLeft = null;
+var availTop = null;
+var availWidth = null;
+var availHeight = null;
 
 var showTimerID = null;
 var updateTimerID = null;
@@ -29,33 +38,42 @@ var imagePanel = panel.Panel({
   contentScriptFile: [jQuery, "./panel.js"]
 });
 
-//This is called immediately after above panel is loaded
-imagePanel.port.on("specifyLoadingImgDimensions", function(width, height) {
-  loadingImgWidth = width;
-  loadingImgHeight = height;
-  imagePanel.resize(width, height);
-});
 
+//Todo: Pass in desktop resolution available space...
 //Called when popup Image (or error image) is ready
-imagePanel.port.on("requestResize", function(width, height) {
-  panelStoredImageWidth = width;
-  panelStoredImageHeight = height;
-  imagePanel.resize(width, height);
-});
+imagePanel.port.on("requestResize",
+  function(imgWidth, imgHeight, screenLeft, screenTop, screenWidth, screenHeight) {
+    panelStoredImageWidth = imgWidth;
+    panelStoredImageHeight = imgHeight;
+    availLeft = screenLeft;
+    availTop = screenTop;
+    availWidth = screenWidth;
+    availHeight = screenHeight;
+    
+    var dim = getPanelDimensions();
+    imagePanel.resize(dim.width, dim.height);
+  }
+);
 
-function show(x, y, delay) {
-  panelStoredX = x;
-  panelStoredY = y;
+
+//EXPORTS
+
+function setImage(url) {
+  imagePanel.port.emit("setImageURL", url);
+}
+
+function show(clientX, clientY, screenX, screenY, delay) {
+  panelX = clientX;
+  panelY = clientY;
+  mouseScreenX = screenX;
+  mouseScreenY = screenY;
   
   //If delay is undefined, null, zero or less than UPDATE_INTERVAL
   //There is a minimum delay to ensure 'specifyLoadingImgDimensions' is sent
   if (!delay || delay < UPDATE_INTERVAL) {
     delay = UPDATE_INTERVAL;
   }
-  
-  showTimerID = timers.setTimeout(function() {
-    imagePanel.show(getPanelDimensions());
-  }, delay);
+  showTimerID = timers.setTimeout(showPanel, delay);
 }
 
 function hide() {
@@ -66,40 +84,31 @@ function hide() {
   showTimerID = null
 }
 
-function moveTo(x, y) {
-  if (x !== panelStoredX || y !== panelStoredY) {
-    panelStoredX = x;
-    panelStoredY = y;
+function moveTo(clientX, clientY, screenX, screenY) {
+  if (clientX !== panelX || clientY !== panelY || screenX !== mouseScreenX ||
+       screenY !== mouseScreenY) {
+    panelX = clientX;
+    panelY = clientY;
+    mouseScreenX = screenX;
+    mouseScreenY = screenY;
     if (!updateTimerID) {
       updateTimerID = timers.setTimeout(timedUpdatePanelPosition, UPDATE_INTERVAL);
     }
   }
 }
 
-function setImage(url) {
-  panelStoredImageWidth = loadingImgWidth;
-  panelStoredImageHeight = loadingImgHeight;
-  imagePanel.port.emit("setImageURL", url);
-}
+// END EXPROTS
 
-
-function getPanelDimensions(corner) {
-  //Return { position: {left, top, right, bottom} } based corner
-  return {
-    position: {
-      left: panelStoredX + 20,
-      top: panelStoredY + 20
-    },
-    width: panelStoredImageWidth,
-    height: panelStoredImageHeight
-  };
-}
 
 //Not used
 /*function updatePanelDimensions() {
   imagePanel.hide();
   imagePanel.show(getPanelDimensions());
 }*/
+
+function showPanel() {
+  imagePanel.show(getPanelDimensions());
+}
 
 function timedUpdatePanelPosition() {
   updateTimerID = null;
@@ -110,4 +119,50 @@ function timedUpdatePanelPosition() {
     //imagePanel.sizeTo(dim["left"], dim["top"]);
     imagePanel.show(getPanelDimensions());
   }
+}
+
+function getPanelDimensions() {
+  // Return best location { position: { left:#, top:#}, width:#, height:# }
+  // Currently only bottom-right
+  
+  const MOUSE_OFFSET = 20;
+  
+  function getScaling(innerWidth, innerHeight, outerWidth, outerHeight) {
+    // Return scaling ratio fitting inner inside outer, keeping the aspect ratio
+    if (outerWidth < 1 || outerHeight < 1)
+      return 0;
+    if (innerWidth > outerWidth || innerHeight > outerHeight)
+    {
+      var wScale, hScale;
+      wScale = outerWidth/innerWidth;
+      hScale = outerHeight/innerHeight;
+      if (wScale < hScale)
+        return wScale;
+      else
+        return hScale;
+    }
+    else
+      return 1;
+  }
+  
+  //For now: bottom-right
+  var fLeft, fTop, fWidth, fHeight;
+  fLeft = mouseScreenX + MOUSE_OFFSET;
+  fTop = mouseScreenY + MOUSE_OFFSET;
+  
+  // There is 5px padding inside the panel in addition to the image
+  var scaling = getScaling(panelStoredImageWidth+10, panelStoredImageHeight+10,
+                            availWidth - fLeft, availHeight - fTop);
+  
+  fWidth = scaling * panelStoredImageWidth;
+  fHeight = scaling * panelStoredImageHeight;
+  
+  return {
+    position: {
+      left: panelX + MOUSE_OFFSET,
+      top: panelY + MOUSE_OFFSET
+    },
+    width: fWidth,
+    height: fHeight
+  };
 }
