@@ -12,6 +12,7 @@ var timers = require('sdk/timers');
 var panel = require("sdk/panel");
 var jQuery = "./jquery-2.1.1.min.js";
 
+
 var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
 
 var panelStoredImageWidth = null;
@@ -24,7 +25,7 @@ var panelY = null;
 var mouseScreenX = null; // "screenX"
 var mouseScreenY = null;
 
-//Desktop available space:
+// Available space on desktop:
 var availLeft = null;
 var availTop = null;
 var availWidth = null;
@@ -33,14 +34,16 @@ var availHeight = null;
 var showTimerID = null;
 var updateTimerID = null;
 
+// Which panel positioning function to use:
+var panelPositioningFunc = getCornerPositioning;
+
 var imagePanel = panel.Panel({
   contentURL: "./panel.html",
   contentScriptFile: [jQuery, "./panel.js"]
 });
 
 
-//Todo: Pass in desktop resolution available space...
-//Called when popup Image (or error image) is ready
+// Called for loading, popup and error images:
 imagePanel.port.on("requestResize",
   function(imgWidth, imgHeight, screenLeft, screenTop, screenWidth, screenHeight) {
     panelStoredImageWidth = imgWidth;
@@ -50,13 +53,13 @@ imagePanel.port.on("requestResize",
     availWidth = screenWidth;
     availHeight = screenHeight;
     
-    var dim = getPanelDimensions();
+    var dim = panelPositioningFunc();
     imagePanel.resize(dim.width, dim.height);
   }
 );
 
 
-//EXPORTS
+// --EXPORTS--
 
 function setImage(url) {
   imagePanel.port.emit("setImageURL", url);
@@ -97,33 +100,24 @@ function moveTo(clientX, clientY, screenX, screenY) {
   }
 }
 
-// END EXPROTS
-
-
-//Not used
-/*function updatePanelDimensions() {
-  imagePanel.hide();
-  imagePanel.show(getPanelDimensions());
-}*/
+// --END EXPORTS--
 
 function showPanel() {
-  imagePanel.show(getPanelDimensions());
+  imagePanel.show(panelPositioningFunc());
 }
 
 function timedUpdatePanelPosition() {
   updateTimerID = null;
   if (imagePanel.isShowing) {
+    // TODO: Missing functionality in SDK - so instead, flickering by hide/show
     imagePanel.hide();
-    //TODO: Bug in SDK - panel flickers
-    //var dim = getPanelDimensions()["position"]
-    //imagePanel.sizeTo(dim["left"], dim["top"]);
-    imagePanel.show(getPanelDimensions());
+    imagePanel.show(panelPositioningFunc());
   }
 }
 
-function getPanelDimensions() {
-  // Return best location { position: { left:#, top:#}, width:#, height:# }
-  // Currently only bottom-right
+function getCornerPositioning() {
+  // Return best corner positioning for the panel
+  //{ position: { left:#, top:#}, width:#, height:# }
   
   const MOUSE_OFFSET = 20;
   
@@ -145,22 +139,49 @@ function getPanelDimensions() {
       return 1;
   }
   
-  //For now: bottom-right
-  var fLeft, fTop, fWidth, fHeight;
-  fLeft = mouseScreenX + MOUSE_OFFSET;
-  fTop = mouseScreenY + MOUSE_OFFSET;
+  // MAGIC: 5px padding
+  var innerW = panelStoredImageWidth + 10;
+  var innerH = panelStoredImageHeight + 10
   
-  // There is 5px padding inside the panel in addition to the image
-  var scaling = getScaling(panelStoredImageWidth+10, panelStoredImageHeight+10,
-                            availWidth - fLeft, availHeight - fTop);
+  var brScaling = getScaling(innerW, innerH,
+                             availWidth - mouseScreenX - MOUSE_OFFSET,
+                             availHeight - mouseScreenY - MOUSE_OFFSET);
+  var trScaling = getScaling(innerW, innerH,
+                             availWidth - mouseScreenX + MOUSE_OFFSET,
+                             mouseScreenY - MOUSE_OFFSET);
+  var tlScaling = getScaling(innerW, innerH,
+                             mouseScreenX - MOUSE_OFFSET,
+                             mouseScreenY - MOUSE_OFFSET);
+  var blScaling = getScaling(innerW, innerH,
+                             mouseScreenX - MOUSE_OFFSET,
+                             availHeight - mouseScreenY - MOUSE_OFFSET);
   
-  fWidth = scaling * panelStoredImageWidth;
-  fHeight = scaling * panelStoredImageHeight;
+  // Select corner giving largest scaling
+  var largestScaling = Math.max(brScaling, trScaling, tlScaling, blScaling);
+  
+  var fWidth = largestScaling * panelStoredImageWidth;
+  var fHeight = largestScaling * panelStoredImageHeight;
+  
+  var fLeft = panelX;
+  var fTop = panelY;
+  if (largestScaling === brScaling) {
+    fLeft += MOUSE_OFFSET;
+    fTop += MOUSE_OFFSET;
+  } else if (largestScaling === trScaling) {
+    fLeft += MOUSE_OFFSET;
+    fTop -= MOUSE_OFFSET + fHeight;
+  } else if (largestScaling === tlScaling) {
+    fLeft -= MOUSE_OFFSET + fWidth;
+    fTop -= MOUSE_OFFSET + fHeight;
+  } else if (largestScaling === blScaling) {
+    fLeft -= MOUSE_OFFSET + fWidth;
+    fTop -= MOUSE_OFFSET;
+  }
   
   return {
     position: {
-      left: panelX + MOUSE_OFFSET,
-      top: panelY + MOUSE_OFFSET
+      left: fLeft,
+      top: fTop
     },
     width: fWidth,
     height: fHeight
