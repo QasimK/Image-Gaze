@@ -119,7 +119,7 @@ function getCornerPositioning() {
   // Return best corner positioning for the panel
   //{ position: { left:#, top:#}, width:#, height:# }
   
-  const MOUSE_OFFSET = 20;
+  const MOUSE_OFFSET = 25;
   
   function getScaling(innerWidth, innerHeight, outerWidth, outerHeight) {
     // Return scaling ratio fitting inner inside outer, keeping the aspect ratio
@@ -175,7 +175,7 @@ function getCornerPositioning() {
     fTop -= MOUSE_OFFSET + fHeight;
   } else if (largestScaling === blScaling) {
     fLeft -= MOUSE_OFFSET + fWidth;
-    fTop -= MOUSE_OFFSET;
+    fTop += MOUSE_OFFSET;
   }
   
   return {
