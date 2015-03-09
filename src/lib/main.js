@@ -1,14 +1,43 @@
 "use strict";
 
-var pageMod = require("sdk/page-mod");
-var jQuery = "./jquery-2.1.1.min.js";
-var panelDisplayer = require("./panel-displayer");
-var preferences = require("sdk/simple-prefs");
+const self = require("sdk/self");
+const pageMod = require("sdk/page-mod");
+const preferences = require("sdk/simple-prefs");
+const storage = require("sdk/simple-storage");
+const advancedPreferences = require("sdk/preferences/service");
 
-var prefPanelDelay = preferences.prefs['panelDelay'];
+const jQuery = "./jquery-2.1.1.min.js";
+
+const panelDisplayer = require("./panel-displayer");
+
+// Mark 'syncBlob' as synchronisable
+const SYNC_BLOB_NAME = "services.sync.prefs.sync.extensions." + self.id +
+                      ".syncBlob";
+advancedPreferences.set(SYNC_BLOB_NAME, true);
+
+// Initialise storage of preferences
+if (!storage.storage.panelDelay) {
+  storage.storage.panelDelay = preferences.prefs['panelDelay'];
+}
+var prefPanelDelay = storage.storage.panelDelay;
+
+// Handle preferences being altered through FireFox UI
 preferences.on("panelDelay", function(prefName) {
   if (prefName == 'panelDelay') {
     prefPanelDelay = preferences.prefs['panelDelay'];
+    // Write to storage
+    storage.storage.panelDelay = prefPanelDelay;
+    // Update sync blob
+    preferences.prefs["syncBlob"] = JSON.stringify(storage.storage);
+  }
+});
+
+// Handle preferences syncBlob being altered
+preferences.on("syncBlob", function(prefName) {
+  if (prefName == 'syncBlob') {
+    storage.storage = JSON.parse(preferences.prefs["syncBlob"]);
+    prefPanelDelay = storage.storage.panelDelay;
+    preferences.prefs['panelDelay'] = prefPanelDelay;
   }
 });
 
