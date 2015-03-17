@@ -5,7 +5,7 @@
   "description": "Show a large preview of the image (link) at the mouse cursor",
   "author": "Qasim K (QasimK.github.io)",
   "homepage": "https://github.com/QasimK/Image-Gaze/",
-  "version": "0.7",
+  "version": "0.8",
   "license": "MIT",
   "permissions": {"private-browsing": true},
   
