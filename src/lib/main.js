@@ -62,14 +62,14 @@ pageMod.PageMod({
     worker.port.on("loadImage", function(url) {
       panelDisplayer.setImage(url);
     });
-    worker.port.on("showPanel", function(clientX, clientY, screenX, screenY) {
-      panelDisplayer.show(clientX, clientY, screenX, screenY, prefPanelDelay);
+    worker.port.on("showPanel", function(clientX, clientY, screenX, screenY, zoom) {
+      panelDisplayer.show(clientX, clientY, screenX, screenY, zoom, prefPanelDelay);
     });
     worker.port.on("hidePanel", function() {
       panelDisplayer.hide();
     });
-    worker.port.on("mouseUpdate", function(clientX, clientY, screenX, screenY) {
-      panelDisplayer.moveTo(clientX, clientY, screenX, screenY);
+    worker.port.on("mouseUpdate", function(clientX, clientY, screenX, screenY, zoom) {
+      panelDisplayer.moveTo(clientX, clientY, screenX, screenY, zoom);
     });
   }
 });

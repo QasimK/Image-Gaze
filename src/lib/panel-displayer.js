@@ -8,9 +8,10 @@ exports.hide = hide;
 exports.setImage = setImage;
 exports.moveTo = moveTo;
 
-var timers = require('sdk/timers');
-var panel = require("sdk/panel");
-var jQuery = "./jquery-2.1.1.min.js";
+const timers = require('sdk/timers');
+const panel = require("sdk/panel");
+
+const jQuery = "./jquery-2.1.1.min.js";
 
 
 var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
@@ -24,6 +25,9 @@ var panelX = null; // "clientX"
 var panelY = null;
 var mouseScreenX = null; // "screenX"
 var mouseScreenY = null;
+
+// clientX is affected by DPI (ie. At 200% the value is half of "actual" value)
+var pageZoom = null;
 
 // Available space on desktop:
 var availLeft = null;
@@ -65,11 +69,12 @@ function setImage(url) {
   imagePanel.port.emit("setImageURL", url);
 }
 
-function show(clientX, clientY, screenX, screenY, delay) {
+function show(clientX, clientY, screenX, screenY, zoom, delay) {
   panelX = clientX;
   panelY = clientY;
   mouseScreenX = screenX;
   mouseScreenY = screenY;
+  pageZoom = zoom;
   
   //If delay is undefined, null, zero or less than UPDATE_INTERVAL
   //There is a minimum delay to ensure 'specifyLoadingImgDimensions' is sent
@@ -87,13 +92,15 @@ function hide() {
   showTimerID = null
 }
 
-function moveTo(clientX, clientY, screenX, screenY) {
+function moveTo(clientX, clientY, screenX, screenY, zoom) {
   if (clientX !== panelX || clientY !== panelY || screenX !== mouseScreenX ||
-       screenY !== mouseScreenY) {
+       screenY !== mouseScreenY || pageZoom !== zoom) {
     panelX = clientX;
     panelY = clientY;
     mouseScreenX = screenX;
     mouseScreenY = screenY;
+    pageZoom = zoom;
+    
     if (!updateTimerID) {
       updateTimerID = timers.setTimeout(timedUpdatePanelPosition, UPDATE_INTERVAL);
     }
@@ -119,7 +126,7 @@ function getCornerPositioning() {
   // Return best corner positioning for the panel
   //{ position: { left:#, top:#}, width:#, height:# }
   
-  const MOUSE_OFFSET = 25;
+  const MOUSE_OFFSET = 20;
   
   function getScaling(innerWidth, innerHeight, outerWidth, outerHeight) {
     // Return scaling ratio fitting inner inside outer, keeping the aspect ratio
@@ -177,6 +184,8 @@ function getCornerPositioning() {
     fLeft -= MOUSE_OFFSET + fWidth;
     fTop += MOUSE_OFFSET;
   }
+  fLeft *= pageZoom;
+  fTop *= pageZoom;
   
   return {
     position: {

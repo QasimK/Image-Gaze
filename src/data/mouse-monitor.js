@@ -16,14 +16,15 @@ $("body").on("mouseenter", 'a', function(event) {
   {
     $(this).on("mousemove", function(event) {
       // client is relative to the web page
+      // client is altered by zoom level (100% gives 50, 200% gives 25)
       // screen is relative to the physical monitor
       self.port.emit("mouseUpdate", event.clientX, event.clientY,
-                      event.screenX, event.screenY);
+                      event.screenX, event.screenY, window.devicePixelRatio);
     });
     self.port.emit("loadImage", url);
     // 'showPanel' must come after 'loadImage' emit:
     self.port.emit("showPanel", event.clientx, event.clientY,
-                    event.screenX, event.screenY);
+                    event.screenX, event.screenY, window.devicePixelRatio);
   }
 });
 
