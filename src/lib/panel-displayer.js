@@ -154,7 +154,7 @@ function getCornerPositioning() {
                              availWidth - mouseScreenX - MOUSE_OFFSET,
                              availHeight - mouseScreenY - MOUSE_OFFSET);
   var trScaling = getScaling(innerW, innerH,
-                             availWidth - mouseScreenX + MOUSE_OFFSET,
+                             availWidth - mouseScreenX - MOUSE_OFFSET,
                              mouseScreenY - MOUSE_OFFSET);
   var tlScaling = getScaling(innerW, innerH,
                              mouseScreenX - MOUSE_OFFSET,
@@ -169,8 +169,8 @@ function getCornerPositioning() {
   var fWidth = largestScaling * panelStoredImageWidth;
   var fHeight = largestScaling * panelStoredImageHeight;
   
-  var fLeft = panelX;
-  var fTop = panelY;
+  var fLeft = panelX * pageZoom;
+  var fTop = panelY * pageZoom;
   if (largestScaling === brScaling) {
     fLeft += MOUSE_OFFSET;
     fTop += MOUSE_OFFSET;
@@ -184,8 +184,6 @@ function getCornerPositioning() {
     fLeft -= MOUSE_OFFSET + fWidth;
     fTop += MOUSE_OFFSET;
   }
-  fLeft *= pageZoom;
-  fTop *= pageZoom;
   
   return {
     position: {
