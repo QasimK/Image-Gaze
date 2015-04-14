@@ -2,13 +2,15 @@
   <body>
     <p>
       Hovering over this should display the full size version of this image.
+      As you zoom in, it should eventually (at 200%) stop displaying the preview.
     </p>
     <img style="width: 200px;" src="400x300.png" />
     <p>
       Hovering over this should display the full size version of this image -
       <span style="font-weight: bold">
-        if and only if you have zoomed in on the page.
+        if and only if you have zoomed out on the page.
       </span>
+      At 100% page zoom and above it will not display the preview.
     </p>
     <img src="400x300.png" />
   </body>
