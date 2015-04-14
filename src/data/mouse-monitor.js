@@ -37,9 +37,9 @@ $("body").on("mouseleave", 'a', function() {
 
 function qualifyURL(url) {
   //Return the URL as an absolute URL (eg. if it is a relative URL)
-	var a = document.createElement('a');
-	a.href = url;
-  var url = a.href
-  a.href = null;
-	return url;
+  var a = document.createElement('a');
+  a.href = url;
+  var qualifiedUrl = a.href
+  a.href = null; // Just to be certain of no memory leaks
+  return qualifiedUrl;
 }
