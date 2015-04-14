@@ -4,8 +4,13 @@ Script is attached to each page.
 */
 "use strict";
 
-$("body").on("mouseenter", 'a', function(event) {
-  var url = qualifyURL($(this).attr("href"));
+$("body").on("mouseenter", 'a, img', function(event) {
+  var rawUrl = $(this).attr("href"); // Links use href
+  if (typeof(rawUrl) === 'undefined') {
+    rawUrl = $(this).attr("src"); // Images use src
+  }
+  var url = qualifyURL(rawUrl);
+
   var cased_url = url.toLowerCase();
   //Last 4 and 5 sub-characters of the string
   var firstSub = url.substr(-4, 4);
@@ -29,7 +34,7 @@ $("body").on("mouseenter", 'a', function(event) {
 });
 
 
-$("body").on("mouseleave", 'a', function() {
+$("body").on("mouseleave", 'a, img', function() {
   $(this).off("mousemove");
   self.port.emit("hidePanel");
 });
