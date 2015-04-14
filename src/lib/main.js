@@ -59,8 +59,9 @@ pageMod.PageMod({
       detachWorker(this, workers);
     });
 
-    worker.port.on("loadImage", function(url) {
-      panelDisplayer.setImage(url);
+    worker.port.on("loadImage", function(url, isImageVisible, imgWidth, imgHeight) {
+      // imageVisible means the image is on the page (as opposed to a pure link)
+      panelDisplayer.setImage(url, isImageVisible, imgWidth, imgHeight);
     });
     worker.port.on("showPanel", function(clientX, clientY, screenX, screenY, zoom) {
       panelDisplayer.show(clientX, clientY, screenX, screenY, zoom, prefPanelDelay);

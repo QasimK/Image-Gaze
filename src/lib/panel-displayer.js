@@ -16,6 +16,10 @@ const jQuery = "./jquery-2.1.1.min.js";
 
 var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
 
+// Various information about the image
+var isImageVisible = null;
+var imageWidth = null;
+var imageHeight = null;
 var panelStoredImageWidth = null;
 var panelStoredImageHeight = null;
 
@@ -65,8 +69,11 @@ imagePanel.port.on("requestResize",
 
 // --EXPORTS--
 
-function setImage(url) {
+function setImage(url, isImgVisible, imgWidth, imgHeight) {
   imagePanel.port.emit("setImageURL", url);
+  isImageVisible = isImgVisible;
+  imageWidth = imgWidth;
+  imageHeight = imgHeight;
 }
 
 function show(clientX, clientY, screenX, screenY, zoom, delay) {
@@ -79,7 +86,7 @@ function show(clientX, clientY, screenX, screenY, zoom, delay) {
   //If delay is undefined, null, zero or less than UPDATE_INTERVAL
   //There is a minimum delay to ensure 'specifyLoadingImgDimensions' is sent
   if (!delay || delay < UPDATE_INTERVAL) {
-    delay = UPDATE_INTERVAL;
+    delay = 1/30; // Tested: 1/60 is not enough time
   }
   showTimerID = timers.setTimeout(showPanel, delay);
 }
@@ -110,7 +117,17 @@ function moveTo(clientX, clientY, screenX, screenY, zoom) {
 // --END EXPORTS--
 
 function showPanel() {
-  imagePanel.show(panelPositioningFunc());
+  // Only show the panel if it is larger than the image.
+  var position = panelPositioningFunc();
+  if (isImageVisible) {
+    if ((position.width > imageWidth * pageZoom &&
+        position.height > imageHeight * pageZoom)) {
+      imagePanel.show(position);
+    }
+  } else {
+    imagePanel.show(position);
+  }
+
 }
 
 function timedUpdatePanelPosition() {
@@ -118,7 +135,7 @@ function timedUpdatePanelPosition() {
   if (imagePanel.isShowing) {
     // TODO: Missing functionality in SDK - so instead, flickering by hide/show
     imagePanel.hide();
-    imagePanel.show(panelPositioningFunc());
+    showPanel();
   }
 }
 

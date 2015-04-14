@@ -5,8 +5,11 @@ Script is attached to each page.
 "use strict";
 
 $("body").on("mouseenter", 'a, img', function(event) {
+  var isImageVisible = false; // Is it a link or an image
+  
   var rawUrl = $(this).attr("href"); // Links use href
   if (typeof(rawUrl) === 'undefined') {
+    isImageVisible = true;
     rawUrl = $(this).attr("src"); // Images use src
   }
   var url = qualifyURL(rawUrl);
@@ -19,6 +22,12 @@ $("body").on("mouseenter", 'a, img', function(event) {
   if (firstSub == ".png" || firstSub == ".jpg" || firstSub == ".gif" ||
       firstSub == ".bmp" || secondSub == ".jpeg" || secondSub == ".gifv")
   {
+    var imgWidth, imgHeight;
+    if(isImageVisible) {
+      imgWidth = $(this).width(); // This is the size regardless of page zoom
+      imgHeight = $(this).height();
+    }
+    
     $(this).on("mousemove", function(event) {
       // client is relative to the web page
       // client is altered by zoom level (100% gives 50, 200% gives 25)
@@ -26,7 +35,8 @@ $("body").on("mouseenter", 'a, img', function(event) {
       self.port.emit("mouseUpdate", event.clientX, event.clientY,
                       event.screenX, event.screenY, window.devicePixelRatio);
     });
-    self.port.emit("loadImage", url);
+    
+    self.port.emit("loadImage", url, isImageVisible, imgWidth, imgHeight);
     // 'showPanel' must come after 'loadImage' emit:
     self.port.emit("showPanel", event.clientx, event.clientY,
                     event.screenX, event.screenY, window.devicePixelRatio);
