@@ -5,6 +5,7 @@
       As you zoom in, it should eventually (at 200%) stop displaying the preview.
     </p>
     <img style="width: 200px;" src="400x300.png" />
+    
     <p>
       Hovering over this should display the full size version of this image -
       <span style="font-weight: bold">
@@ -13,5 +14,28 @@
       At 100% page zoom and above it will not display the preview.
     </p>
     <img src="400x300.png" />
+    
+    <p>
+      Image which links to itself. There should be *no preview* at normal zoom.
+    </p>
+    <a href="400x300.png">
+      <img src="400x300.png" />
+    </a>
+    
+    <p>
+      Image which links to itself and is smaller than what it links to.
+      It *should* display a preview.
+    </p>
+    <a href="400x300.png">
+      <img style="width: 200px;" src="400x300.png" />
+    </a>
+    
+    <p>
+      An image which links to a higher resolution image.
+      It should disable a preview the higher resolution image.
+    </p>
+    <a href="800x600.png">
+      <img src="400x300.png" />
+    </a>
   </body>
 </html>
