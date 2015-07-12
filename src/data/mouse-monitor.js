@@ -5,13 +5,24 @@ Script is attached to each page.
 "use strict";
 
 $("body").on("mouseenter", 'a, img', function(event) {
-  var isImageVisible = false; // Is it a link or an image
-  
-  var rawUrl = $(this).attr("href"); // Links use href
-  if (typeof(rawUrl) === 'undefined') {
+  var $this = $(this);
+
+  // use jQuery .find('> img')
+  // (http://stackoverflow.com/questions/4444120/select-direct-child-of-this-in-jquery)
+  // We are okay for now because the A event fires *after* the IMG event
+
+  var isImageVisible; // Is it a link or an actual image on the page?
+  var rawUrl;
+  if ($this[0].tagName == "A") {
+    isImageVisible = false;
+    rawUrl = $this.attr("href");
+    console.log("a");
+  } else if ($this[0].tagName == "IMG") {
     isImageVisible = true;
-    rawUrl = $(this).attr("src"); // Images use src
+    rawUrl = $this.attr("src");
+    console.log("img");
   }
+
   var url = qualifyURL(rawUrl);
 
   var cased_url = url.toLowerCase();
