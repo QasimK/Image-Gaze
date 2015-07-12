@@ -10,6 +10,7 @@ exports.moveTo = moveTo;
 
 const timers = require('sdk/timers');
 const panel = require("sdk/panel");
+const viewCore = require("sdk/view/core");
 
 const jQuery = "./jquery-2.1.1.min.js";
 
@@ -18,7 +19,7 @@ var UPDATE_INTERVAL = 1000/60; //Possibility of changing fps (to refresh rate?)
 
 // Various information about the image
 var isImageVisible = null;
-var imageWidth = null;
+var imageWidth = null;  // If image is visible this is the image information
 var imageHeight = null;
 var panelStoredImageWidth = null;
 var panelStoredImageHeight = null;
@@ -42,6 +43,9 @@ var availHeight = null;
 var showTimerID = null;
 var updateTimerID = null;
 
+var isRequestedShowing = false; // Has main.js sent events so that the panel should be shown?
+var requestedShowingDelay = null;
+
 // Which panel positioning function to use:
 var panelPositioningFunc = getCornerPositioning;
 
@@ -49,6 +53,7 @@ var imagePanel = panel.Panel({
   contentURL: "./panel.html",
   contentScriptFile: [jQuery, "./panel.js"]
 });
+var xulPanel = viewCore.getActiveView(imagePanel); // Low level view of imagePanel
 
 
 // Called for loading, popup and error images:
@@ -61,8 +66,9 @@ imagePanel.port.on("requestResize",
     availWidth = screenWidth;
     availHeight = screenHeight;
     
-    var dim = panelPositioningFunc();
-    imagePanel.resize(dim.width, dim.height);
+    if (isRequestedShowing) {
+      showPanel();
+    }
   }
 );
 
@@ -83,12 +89,13 @@ function show(clientX, clientY, screenX, screenY, zoom, delay) {
   mouseScreenY = screenY;
   pageZoom = zoom;
   
-  //If delay is undefined, null, zero or less than UPDATE_INTERVAL
-  //There is a minimum delay to ensure 'specifyLoadingImgDimensions' is sent
-  if (!delay || delay < UPDATE_INTERVAL) {
-    delay = 1/30; // Tested: 1/60 is not enough time
+  isRequestedShowing = true;
+
+  if (delay) {
+    showTimerID = timers.setTimeout(showPanel, delay);
+  } else {
+    isRequestedShowing = true;
   }
-  showTimerID = timers.setTimeout(showPanel, delay);
 }
 
 function hide() {
@@ -96,7 +103,8 @@ function hide() {
   timers.clearTimeout(updateTimerID);
   updateTimerID = null;
   timers.clearTimeout(showTimerID);
-  showTimerID = null
+  showTimerID = null;
+  isRequestedShowing = false;
 }
 
 function moveTo(clientX, clientY, screenX, screenY, zoom) {
@@ -107,7 +115,7 @@ function moveTo(clientX, clientY, screenX, screenY, zoom) {
     mouseScreenX = screenX;
     mouseScreenY = screenY;
     pageZoom = zoom;
-    
+
     if (!updateTimerID) {
       updateTimerID = timers.setTimeout(timedUpdatePanelPosition, UPDATE_INTERVAL);
     }
@@ -116,32 +124,58 @@ function moveTo(clientX, clientY, screenX, screenY, zoom) {
 
 // --END EXPORTS--
 
-function showPanel() {
-  // Only show the panel if it is larger than the image.
-  var position = panelPositioningFunc();
-  if (isImageVisible) {
-    if ((position.width > imageWidth * pageZoom &&
-        position.height > imageHeight * pageZoom)) {
-      imagePanel.show(position);
-    }
-  } else {
-    imagePanel.show(position);
-  }
-
+function requestShowing() {
+  isRequestedShowing = true;
 }
+
+function showPanel() {
+  // Make the panel visible
+
+  var position = panelPositioningFunc();
+  if (isPanelVisibilityAllowed(position)) {
+    imagePanel.show(position);
+    positionPanel(position.mPosition.left, position.mPosition.top,
+                  position.width, position.height);
+  }
+}
+
 
 function timedUpdatePanelPosition() {
   updateTimerID = null;
   if (imagePanel.isShowing) {
-    // TODO: Missing functionality in SDK - so instead, flickering by hide/show
-    imagePanel.hide();
-    showPanel();
+    var position = panelPositioningFunc();
+    positionPanel(position.mPosition.left, position.mPosition.top,
+                  position.width, position.height);
   }
 }
 
+
+function isPanelVisibilityAllowed(position) {
+  // No if panel is smaller than the visible image
+  if (isImageVisible &&
+      (position.width <= imageWidth * pageZoom &&
+       position.height <= imageHeight * pageZoom)) {
+
+    return false;
+  }
+
+  return true;
+}
+
+
+function positionPanel(left, top, width, height) {
+  // Move (optional) & resize (optional) the panel
+  // left and top MUST be coordinates relative to the screen
+
+  xulPanel.moveTo(left, top);
+  imagePanel.resize(width, height);
+}
+
+
 function getCornerPositioning() {
   // Return best corner positioning for the panel
-  //{ position: { left:#, top:#}, width:#, height:# }
+  //{ position: { left:#, top:#}, width:#, height:#, mPosition { left:#, top:#} }
+  // mPosition is relative to the monitor
   
   const MOUSE_OFFSET = 20;
   
@@ -186,28 +220,41 @@ function getCornerPositioning() {
   var fWidth = largestScaling * panelStoredImageWidth;
   var fHeight = largestScaling * panelStoredImageHeight;
   
-  var fLeft = panelX * pageZoom;
-  var fTop = panelY * pageZoom;
+  var pLeft = panelX * pageZoom;
+  var pTop = panelY * pageZoom;
+  var mLeft = mouseScreenX;
+  var mTop = mouseScreenY;
+
+  var adjustLeft, adjustTop;
   if (largestScaling === brScaling) {
-    fLeft += MOUSE_OFFSET;
-    fTop += MOUSE_OFFSET;
+    adjustLeft = MOUSE_OFFSET;
+    adjustTop = MOUSE_OFFSET;
   } else if (largestScaling === trScaling) {
-    fLeft += MOUSE_OFFSET;
-    fTop -= MOUSE_OFFSET + fHeight;
+    adjustLeft = MOUSE_OFFSET;
+    adjustTop = -(MOUSE_OFFSET + fHeight);
   } else if (largestScaling === tlScaling) {
-    fLeft -= MOUSE_OFFSET + fWidth;
-    fTop -= MOUSE_OFFSET + fHeight;
+    adjustLeft = -(MOUSE_OFFSET + fWidth);
+    adjustTop = -(MOUSE_OFFSET + fHeight);
   } else if (largestScaling === blScaling) {
-    fLeft -= MOUSE_OFFSET + fWidth;
-    fTop += MOUSE_OFFSET;
+    adjustLeft = -(MOUSE_OFFSET + fWidth);
+    adjustTop = MOUSE_OFFSET;
   }
+
+  pLeft += adjustLeft;
+  pTop += adjustTop;
+  mLeft += adjustLeft;
+  mTop += adjustTop;
   
   return {
     position: {
-      left: fLeft,
-      top: fTop
+      left: pLeft,
+      top: pTop
     },
     width: fWidth,
-    height: fHeight
+    height: fHeight,
+    mPosition: {
+      left: mLeft,
+      top: mTop
+    }
   };
 }
