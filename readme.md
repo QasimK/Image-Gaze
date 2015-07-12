@@ -10,6 +10,11 @@ A Firefox add-on to show large previews of images or links that lead to images.
 2. Activate the development environment, i.e. `addon-sdk-1.17\bin\activate`.
 2. Run the add-on in a clean Firefox instance with `cfx run`.
 
+### Release
+
+1. Update `package.json` with new version number.
+2. Create release with `cfx xpi` and store in `Image-Gaze/releases/`.
+
 ---
 
 `Image Gaze, Copyright © 2015 Qasim K — MIT License`
