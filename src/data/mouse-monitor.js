@@ -16,11 +16,9 @@ $("body").on("mouseenter", 'a, img', function(event) {
   if ($this[0].tagName == "A") {
     isImageVisible = false;
     rawUrl = $this.attr("href");
-    console.log("a");
   } else if ($this[0].tagName == "IMG") {
     isImageVisible = true;
     rawUrl = $this.attr("src");
-    console.log("img");
   }
 
   var url = qualifyURL(rawUrl);
