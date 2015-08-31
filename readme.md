@@ -2,7 +2,7 @@
 
 A Firefox add-on to show large previews of images or links that lead to images.
 
-# [Find out more and get it at Mozilla's add-on centre.](https://addons.mozilla.org/en-US/firefox/addon/image-gaze/)
+#### Find out more and [get it at Mozilla's add-on centre.](https://addons.mozilla.org/en-US/firefox/addon/image-gaze/)
 
 ## Development
 
